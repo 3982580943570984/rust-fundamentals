@@ -1,6 +1,9 @@
 import { memory } from "../pkg/game_of_life_bg";
 import { Cell, Universe } from "../pkg/game_of_life";
 
+// TODO:
+// 1. On Ctrl + Click, insert a glider centered on the target cell. On Shift + Click, insert a pulsar.
+
 // Define color and size constants
 const CELL_SIZE = 10;
 const GRID_COLOR = "#CCCCCC";
@@ -40,13 +43,64 @@ canvas.addEventListener("click", (event) => {
   drawCells();
 });
 
+const fps = new class {
+  constructor() {
+    this.fps = document.getElementById("fps");
+    this.frames = [];
+    this.lastFrameTimeStamp = performance.now();
+  }
+
+  render() {
+    // Convert the delta time since the last frame render into a measure
+    // of frames per second
+    const now = performance.now();
+    const delta = now - this.lastFrameTimeStamp;
+    this.lastFrameTimeStamp = now;
+    const fps = 1 / delta * 1000;
+
+    // Save only 100 latest 100 timings
+    this.frames.push(fps);
+    if (this.frames.length > 100) {
+      this.frames.shift();
+    }
+
+    let min = Infinity;
+    let max = -Infinity;
+    let sum = 0;
+    for (let index = 0; index < this.frames.length; ++index) {
+      sum += this.frames[index];
+      min = Math.min(this.frames[index], min);
+      max = Math.max(this.frames[index], max);
+    }
+    let mean = sum / this.frames.length;
+
+    this.fps.textContent = `
+Frames per Second:
+         latest = ${Math.round(fps)}
+avg of last 100 = ${Math.round(mean)}
+min of last 100 = ${Math.round(min)}
+max of last 100 = ${Math.round(max)}
+`.trim();
+  }
+}();
+
 // Animation control
 let animationId = null;
+let timeoutId = null;
 const renderLoop = () => {
-  universe.tick();
-  drawGrid();
-  drawCells();
-  animationId = requestAnimationFrame(renderLoop);
+  // debugger;
+  
+  fps.render();
+
+  const numberOfTicks = document.getElementById("ticks-range");
+  for (let index = 0; index < numberOfTicks.value; index++) {
+    universe.tick();
+    drawGrid();
+    drawCells();
+  }
+  timeoutId = setTimeout(() => {
+    animationId = requestAnimationFrame(renderLoop);
+  }, 50);
 };
 
 // Control button for play and pause
@@ -58,12 +112,48 @@ const play = () => {
 const pause = () => {
   playPauseButton.textContent = "▶";
   cancelAnimationFrame(animationId);
+  clearTimeout(timeoutId);
   animationId = null;
+  timeoutId = null;
 };
 const isPaused = () => animationId === null;
 
 playPauseButton.addEventListener("click", () => {
   isPaused() ? play() : pause();
+});
+
+const randomResetButton = document.getElementById("random-reset");
+randomResetButton.addEventListener("click", () => {
+  pause();
+  allDeadResetButton.click();
+
+  const cellsPtr = universe.cells();
+  const cells = new Uint8Array(memory.buffer, cellsPtr, width * height);
+
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const index = getIndex(row, col);
+      if (Math.random() < 0.5) {
+        cells[index] = Cell.Alive;
+      }
+    }
+  }
+  play();
+});
+
+const allDeadResetButton = document.getElementById("all-dead-reset");
+allDeadResetButton.addEventListener("click", () => {
+  const cellsPtr = universe.cells();
+  const cells = new Uint8Array(memory.buffer, cellsPtr, width * height);
+
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      const index = getIndex(row, col);
+      if (cells[index] == Cell.Alive) {
+        cells[index] = Cell.Dead;
+      }
+    }
+  }
 });
 
 // Draw the grid

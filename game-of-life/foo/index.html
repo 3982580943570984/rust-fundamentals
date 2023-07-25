@@ -3,22 +3,16 @@
   <head>
     <meta charset="utf-8" />
     <title>j3982580943570984</title>
-    <style>
-      body {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-      }
-    </style>
+    <link rel="stylesheet" type="text/css" href="./styles.css" />
   </head>
   <body>
-    <button id="play-pause"></button>
+    <div id="fps"></div>
+    <div id="buttons">
+      <button id="play-pause"></button>
+      <button id="random-reset">Random reset</button>
+      <button id="all-dead-reset">All dead reset</button>
+    </div>
+    <input id="ticks-range" type="range" value="1" max="10" min="1" />
     <canvas id="game-of-life-canvas"></canvas>
     <script src="./bootstrap.js"></script>
   </body>
